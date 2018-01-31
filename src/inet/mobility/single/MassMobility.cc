@@ -18,9 +18,12 @@
 //
 
 #include "inet/mobility/single/MassMobility.h"
+#include "inet/environment/contract/IGround.h"
 #include "inet/common/INETMath.h"
 
 namespace inet {
+
+using namespace physicalenvironment;
 
 Define_Module(MassMobility);
 
@@ -43,6 +46,7 @@ void MassMobility::initialize(int stage)
         changeAngleByParameter = &par("changeAngleBy");
         speedParameter = &par("speed");
     }
+    targetPosition.z = 0;
 }
 
 void MassMobility::setTargetPosition()
@@ -55,6 +59,15 @@ void MassMobility::setTargetPosition()
     EV_DEBUG << "interval: " << nextChangeInterval << endl;
     sourcePosition = lastPosition;
     targetPosition = lastPosition + direction * (*speedParameter) * nextChangeInterval.dbl();
+
+    auto ground = getModuleFromPar<IGround>(par("groundModule"), this, false);
+
+    if (ground)
+        targetPosition.z = ground->getElevation(targetPosition);
+
+    if (std::isnan(targetPosition.z))
+        targetPosition.z = 0;
+
     previousChange = simTime();
     nextChange = previousChange + nextChangeInterval;
 }

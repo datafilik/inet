@@ -52,6 +52,7 @@ import inet.mobility.base.MovingMobilityBase;
 simple MassMobility extends MovingMobilityBase
 {
     parameters:
+        string groundModule = default(""); // module path of the ground module
         double initialX @unit(m) = default(uniform(constraintAreaMinX, constraintAreaMaxX));
         double initialY @unit(m) = default(uniform(constraintAreaMinY, constraintAreaMaxY));
         double initialZ @unit(m) = default(nanToZero(uniform(constraintAreaMinZ, constraintAreaMaxZ)));
