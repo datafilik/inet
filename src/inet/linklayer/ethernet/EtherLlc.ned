@@ -58,11 +58,11 @@ simple EtherLlc
 
         @signal[packetSentToLower](type=cPacket);
         @signal[packetSentToUpper](type=cPacket);
-        @signal[packetDrop](type=Packet);
+        @signal[packetDropped](type=Packet);
         @signal[pauseSent](type=long); // pause units
         @statistic[packetSentToLower](title="packets sent to lower";source=packetSentToLower; record=count,"sum(packetBytes)","vector(packetBytes)"; interpolationmode=none);
         @statistic[passedUpPk](title="packets passed up";source=packetSentToUpper; record=count,"sum(packetBytes)","vector(packetBytes)"; interpolationmode=none);
-        @statistic[droppedPkUnknownDsap](title="dropped packets unknown DSAP";source=packetDropReasonIsNoProtocolFound(packetDrop); record=count,"sum(packetBytes)","vector(packetBytes)"; interpolationmode=none);
+        @statistic[droppedPkUnknownDsap](title="dropped packets unknown DSAP";source=packetDropReasonIsNoProtocolFound(packetDropped); record=count,"sum(packetBytes)","vector(packetBytes)"; interpolationmode=none);
         @statistic[pauseSent](title="pause sent";record=count,vector);
     gates:
         input upperLayerIn[] @labels(Ieee802Ctrl/down); // higher layer
