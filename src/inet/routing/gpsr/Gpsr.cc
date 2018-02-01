@@ -467,19 +467,19 @@ std::vector<L3Address> Gpsr::getPlanarNeighbors()
     return planarNeighbors;
 }
 
-L3Address Gpsr::getNextPlanarNeighborCounterClockwise(const L3Address& startNeighborAddress, double startNeighborAngle)
+L3Address Gpsr::getNextPlanarNeighborCounterClockwise(double startNeighborAngle)
 {
-    EV_DEBUG << "Finding next planar neighbor (counter clockwise): startAddress = " << startNeighborAddress << ", startAngle = " << startNeighborAngle << endl;
-    L3Address bestNeighborAddress = startNeighborAddress;
-    double bestNeighborAngleDifference = 2 * M_PI;
+    EV_DEBUG << "Finding next planar neighbor (counter clockwise): startAngle = " << startNeighborAngle << endl;
+    L3Address bestNeighborAddress;
+    double bestNeighborAngleDifference = DBL_MAX;
     std::vector<L3Address> neighborAddresses = getPlanarNeighbors();
     for (auto & neighborAddress : neighborAddresses) {
         double neighborAngle = getNeighborAngle(neighborAddress);
         double neighborAngleDifference = neighborAngle - startNeighborAngle;
-        if (neighborAngleDifference < 0)
+        if (neighborAngleDifference <= 0)
             neighborAngleDifference += 2 * M_PI;
         EV_DEBUG << "Trying next planar neighbor (counter clockwise): address = " << neighborAddress << ", angle = " << neighborAngle << endl;
-        if (neighborAngleDifference != 0 && neighborAngleDifference < bestNeighborAngleDifference) {
+        if (neighborAngleDifference < bestNeighborAngleDifference) {
             bestNeighborAngleDifference = neighborAngleDifference;
             bestNeighborAddress = neighborAddress;
         }
@@ -524,6 +524,7 @@ L3Address Gpsr::findGreedyRoutingNextHop(const Ptr<const NetworkHeaderBase>& net
         // KLUDGE: TODO: const_cast<GpsrOption *>(gpsrOption)
         const_cast<GpsrOption *>(gpsrOption)->setRoutingMode(GPSR_PERIMETER_ROUTING);
         const_cast<GpsrOption *>(gpsrOption)->setPerimeterRoutingStartPosition(selfPosition);
+        const_cast<GpsrOption *>(gpsrOption)->setPerimeterRoutingForwardPosition(selfPosition);
         const_cast<GpsrOption *>(gpsrOption)->setCurrentFaceFirstSenderAddress(selfAddress);
         const_cast<GpsrOption *>(gpsrOption)->setCurrentFaceFirstReceiverAddress(L3Address());
         return findPerimeterRoutingNextHop(networkHeader, destination);
@@ -548,18 +549,21 @@ L3Address Gpsr::findPerimeterRoutingNextHop(const Ptr<const NetworkHeaderBase>& 
         const_cast<GpsrOption *>(gpsrOption)->setRoutingMode(GPSR_GREEDY_ROUTING);
         const_cast<GpsrOption *>(gpsrOption)->setPerimeterRoutingStartPosition(Coord());
         const_cast<GpsrOption *>(gpsrOption)->setPerimeterRoutingForwardPosition(Coord());
+        const_cast<GpsrOption *>(gpsrOption)->setCurrentFaceFirstSenderAddress(L3Address());
+        const_cast<GpsrOption *>(gpsrOption)->setCurrentFaceFirstReceiverAddress(L3Address());
         return findGreedyRoutingNextHop(networkHeader, destination);
     }
     else {
         const L3Address& firstSenderAddress = gpsrOption->getCurrentFaceFirstSenderAddress();
         const L3Address& firstReceiverAddress = gpsrOption->getCurrentFaceFirstReceiverAddress();
-        L3Address nextNeighborAddress = getSenderNeighborAddress(networkHeader);
+        auto senderNeighborAddress = getSenderNeighborAddress(networkHeader);
+        auto startNeighborAngle = senderNeighborAddress.isUnspecified() ? getDestinationAngle(destination) : getNeighborAngle(senderNeighborAddress);
+        auto nextNeighborAddress = senderNeighborAddress;
+        auto nextNeighborAngle = startNeighborAngle;
         while (true) {
-            if (nextNeighborAddress.isUnspecified())
-                nextNeighborAddress = getNextPlanarNeighborCounterClockwise(nextNeighborAddress, getDestinationAngle(destination));
-            else
-                nextNeighborAddress = getNextPlanarNeighborCounterClockwise(nextNeighborAddress, getNeighborAngle(nextNeighborAddress));
-            if (nextNeighborAddress.isUnspecified())
+            nextNeighborAddress = getNextPlanarNeighborCounterClockwise(nextNeighborAngle);
+            nextNeighborAngle = getNeighborAngle(nextNeighborAddress);
+            if (nextNeighborAddress.isUnspecified() || nextNeighborAddress == senderNeighborAddress)
                 break;
             EV_DEBUG << "Intersecting towards next hop: nextNeighbor = " << nextNeighborAddress << ", firstSender = " << firstSenderAddress << ", firstReceiver = " << firstReceiverAddress << ", destination = " << destination << endl;
             Coord nextNeighborPosition = getNeighborPosition(nextNeighborAddress);
@@ -571,6 +575,7 @@ L3Address Gpsr::findPerimeterRoutingNextHop(const Ptr<const NetworkHeaderBase>& 
                 // KLUDGE: TODO: const_cast<GpsrOption *>(gpsrOption)
                 const_cast<GpsrOption *>(gpsrOption)->setCurrentFaceFirstSenderAddress(selfAddress);
                 const_cast<GpsrOption *>(gpsrOption)->setCurrentFaceFirstReceiverAddress(L3Address());
+                const_cast<GpsrOption *>(gpsrOption)->setPerimeterRoutingForwardPosition(intersection);
             }
         }
         if (firstSenderAddress == selfAddress && firstReceiverAddress == nextNeighborAddress) {
