@@ -5,14 +5,11 @@
 ### "connState" -> "connState"
 ### "connect" -> "connect"
 ### "datarate" -> "datarate"
-"decapPk" -> meaningless, use another or merge
 ### "delay" -> "delay"
 "dequeuePk" -> "packetDequeued"
 ### "dropConfirm" -> "dropConfirm"
-### "dsap" -> "dsap"
 ### "duplPk" -> "duplPk"
 ### "echoedPk" -> "echoedPk"
-"encapPk" -> meaningless, use another or merge
 "enqueuePk" -> "packetEnqueued"
 ### "ipv4DataOnNonrpf" -> "ipv4DataOnNonrpf"
 ### "ipv4DataOnRpf" -> "ipv4DataOnRpf"
